@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cloud-fullstack-skills",
+  "version": "0.0.1",
+  "description": "Claude Code plugins for cloud deployment and full-stack development",
+  "owner": {
+    "name": "ferdousbhai"
+  },
+  "plugins": [
+    {
+      "name": "modal-deployment",
+      "description": "Run Python code in the cloud with serverless containers, GPUs, and autoscaling using Modal",
+      "version": "0.0.1",
+      "source": "./plugins/modal-deployment",
+      "category": "development"
+    },
+    {
+      "name": "tanstack-start",
+      "description": "TanStack Start full-stack React framework with SSR, server functions, and Cloudflare deployment",
+      "version": "0.0.1",
+      "source": "./plugins/tanstack-start",
+      "category": "development"
+    }
+  ]
+}
