@@ -2,6 +2,29 @@
 
 Server-only code callable from anywhere (components, loaders, handlers).
 
+## Critical: Loader Execution Context
+
+**Route loaders run on the server for initial SSR, but run on the CLIENT during subsequent navigations.** This means direct API calls in loaders will execute from the browser when users navigate between pages.
+
+```typescript
+// ❌ WRONG - Works on initial load, fails on client navigation
+export const Route = createFileRoute('/posts')({
+  loader: async () => {
+    // This runs in browser on navigation → CORS errors, exposed secrets
+    return await db.query('SELECT * FROM posts')
+  },
+})
+
+// ✅ CORRECT - Always runs on server
+import { getPostsServer } from '../lib/server/queries'
+
+export const Route = createFileRoute('/posts')({
+  loader: async () => {
+    return await getPostsServer()  // Server function ensures server execution
+  },
+})
+```
+
 ## When to Use What
 
 | Use Case | Solution |

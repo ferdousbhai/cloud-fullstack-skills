@@ -275,6 +275,44 @@ def serve():
 4. **Use Volumes** for model weights and persistent data
 5. **Use memory snapshots** for sub-second cold starts in production
 6. **Set appropriate timeouts** for long-running tasks
+7. **Use `min_containers=1`** for production APIs to keep containers warm
+8. **Use absolute imports** with full package paths (not relative imports)
+
+### Fast Image Builds with uv_sync
+
+Use `.uv_sync()` instead of `.pip_install()` for faster dependency installation:
+
+```python
+# In pyproject.toml, define dependency groups:
+# [dependency-groups]
+# modal = ["fastapi", "pydantic-ai>=1.0.0", "logfire"]
+
+image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .uv_sync("agent", groups=["modal"], frozen=False)
+    .add_local_python_source("agent.src")  # Use dot notation for packages
+)
+```
+
+**Key points:**
+- Deploy from project root: `modal deploy agent/src/api.py`
+- Use dot notation in `.add_local_python_source("package.subpackage")`
+- Imports must match: `from agent.src.config import ...` (not relative `from .config`)
+
+### Logfire Observability
+
+Add observability with Logfire (especially for pydantic-ai):
+
+```python
+@app.cls(image=image, secrets=[..., modal.Secret.from_name("logfire")], min_containers=1)
+class Web:
+    @modal.enter()
+    def startup(self):
+        import logfire
+        logfire.configure(send_to_logfire="if-token-present", environment="production", service_name="my-agent")
+        logfire.instrument_pydantic_ai()
+        self.agent = create_agent()
+```
 
 ## Reference Documentation
 

@@ -46,6 +46,8 @@ Do NOT enable `verbatimModuleSyntax` - it leaks server bundles into client bundl
 
 See [references/server-functions.md](references/server-functions.md) for complete guide.
 
+> ⚠️ **Critical**: Route loaders run on server for initial SSR, but run on **CLIENT** during navigation. Always wrap server code in `createServerFn()` to ensure it runs server-side.
+
 **When to use what (Cloudflare Workers):**
 
 | Use Case | Solution |
@@ -162,6 +164,59 @@ pnpm add @tanstack/react-query @tanstack/react-router-ssr-query
 ```tsx
 // Preload in loaders, consume with useSuspenseQuery
 loader: ({ context }) => context.queryClient.ensureQueryData(myQueryOptions)
+```
+
+## Better-Auth Integration
+
+See [references/better-auth.md](references/better-auth.md) for complete guide.
+
+> ⚠️ **Critical**: Use `createFileRoute` with `server.handlers`, NOT the legacy `createAPIFileRoute`.
+
+**Mount the auth handler** at `/src/routes/api/auth/$.ts`:
+```typescript
+import { auth } from '@/lib/auth'
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute('/api/auth/$')({
+  server: {
+    handlers: {
+      GET: ({ request }) => auth.handler(request),
+      POST: ({ request }) => auth.handler(request),
+    },
+  },
+})
+```
+
+**Auth config** with `tanstackStartCookies` plugin:
+```typescript
+import { betterAuth } from "better-auth"
+import { tanstackStartCookies } from "better-auth/tanstack-start"
+
+export const auth = betterAuth({
+  // ...your config
+  plugins: [tanstackStartCookies()] // MUST be last plugin
+})
+```
+
+**Protect routes** with middleware:
+```typescript
+import { createMiddleware } from "@tanstack/react-start"
+import { getRequestHeaders } from "@tanstack/react-start/server"
+import { auth } from "./auth"
+
+export const authMiddleware = createMiddleware().server(
+  async ({ next }) => {
+    const session = await auth.api.getSession({ headers: getRequestHeaders() })
+    if (!session) throw redirect({ to: "/login" })
+    return next()
+  }
+)
+
+// In route:
+export const Route = createFileRoute('/dashboard')({
+  server: { middleware: [authMiddleware] },
+  component: Dashboard,
+})
 ```
 
 ## GitHub Actions Auto-Deploy
